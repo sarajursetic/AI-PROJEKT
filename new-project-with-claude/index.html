@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movable Image</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #181208;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #game-area {
+            position: relative;
+            width: 90%;
+            height: 80%;
+            min-height: 750px; /* Much larger vertical space */
+            min-width: 1000px; /* Ensure enough horizontal space too */
+            background-image: url(img/tile000.png);
+            background-size: contain;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden; /* Prevent scrollbars */
+        }
+        
+        #player {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background-image: url('/api/placeholder/400/400?text=IDLE');
+            background-size: 400px auto;
+            /* Position using top/left directly instead of transform */
+            left: 50px;
+            top: 50px;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            text-align: center;
+            width: 100%;
+            font-size: 16px;
+            color: #333;
+            animation: color 5s infinite;
+        }
+
+        @keyframes color {
+          0%   {color: #333;}
+          25%  {color: #bcbcbc;}
+          50%  {color: #eaeaea;}
+          75%  {color: #bcbcbc;}
+          100% {color: #333;}
+        }
+        
+        #debug {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 12px;
+            display: none;
+            color: #f30000;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-area">
+        <div id="player"></div>
+        <div id="instructions">
+            Use Arrow Keys or WASD to move the image
+        </div>
+        <div id="debug"></div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const player = document.getElementById('player');
+            const gameArea = document.getElementById('game-area');
+            const debug = document.getElementById('debug');
+            
+            // Initial position
+            let posX = 50;
+            let posY = 50;
+            
+            // Movement speed
+            const speed = 10;
+            
+            // Track pressed keys
+            const keys = {
+                up: false,
+                down: false,
+                left: false,
+                right: false
+            };
+            
+            // Track the last direction used
+            let lastDirection = 'default';
+            
+            // Image sources for different directions
+            const images = {
+                default: 'img/idle-soldier.gif',
+                up: 'img/walk-soldier.gif',
+                down: 'img/walk-soldier.gif',
+                left: 'img/behind-walk-soldier.gif',
+                right: 'img/walk-soldier.gif'
+            };
+            
+            // Direction-specific idle images
+            const idleImages = {
+                default: 'img/idle-soldier.gif',
+                up: 'img/idle-soldier.gif',
+                down: 'img/idle-soldier.gif',
+                left: 'img/idle-left-soldier.gif',  // Special idle image for left
+                right: 'img/idle-soldier.gif'
+            };
+              
+            // Debug information
+            function updateDebug() {
+                debug.innerHTML = `
+                    Game Area: ${gameArea.offsetWidth}x${gameArea.offsetHeight}<br>
+                    Player Position: X=${Math.round(posX)}, Y=${Math.round(posY)}<br>
+                    Max Position: X=${gameArea.offsetWidth - player.offsetWidth}, Y=${gameArea.offsetHeight - player.offsetHeight}<br>
+                    Keys: Up=${keys.up}, Down=${keys.down}, Left=${keys.left}, Right=${keys.right}<br>
+                    Last Direction: ${lastDirection}
+                `;
+            }
+            
+            // Update player position and image
+            function updatePosition() {
+                // Calculate boundaries
+                const maxX = gameArea.offsetWidth - player.offsetWidth;
+                const maxY = gameArea.offsetHeight - player.offsetHeight;
+                
+                let moved = false;
+                let direction = 'default';
+                
+                // Apply movement based on keys
+                if (keys.up) {
+                    posY -= speed;
+                    direction = 'up';
+                    moved = true;
+                }
+                if (keys.down) {
+                    posY += speed;
+                    direction = 'down';
+                    moved = true;
+                }
+                if (keys.left) {
+                    posX -= speed;
+                    direction = 'left';
+                    moved = true;
+                }
+                if (keys.right) {
+                    posX += speed;
+                    direction = 'right';
+                    moved = true;
+                }
+                
+                // Update image based on direction
+                if (moved) {
+                    player.style.backgroundImage = `url('${images[direction]}')`;
+                    lastDirection = direction; // Update last direction
+                }
+                
+                // Apply boundaries
+                posX = Math.max(0, Math.min(posX, maxX));
+                posY = Math.max(0, Math.min(posY, maxY));
+                
+                // Update player position
+                player.style.left = `${posX}px`;
+                player.style.top = `${posY}px`;
+                
+                // Update debug info
+                updateDebug();
+                
+                // Continue animation
+                requestAnimationFrame(updatePosition);
+            }
+            
+            // Start animation loop
+            updatePosition();
+            
+            // Key press event handlers
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        keys.up = true;
+                        player.style.backgroundImage = `url('${images.up}')`;
+                        lastDirection = 'up';
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        keys.down = true;
+                        player.style.backgroundImage = `url('${images.down}')`;
+                        lastDirection = 'down';
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        keys.left = true;
+                        player.style.backgroundImage = `url('${images.left}')`;
+                        lastDirection = 'left';
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        keys.right = true;
+                        player.style.backgroundImage = `url('${images.right}')`;
+                        lastDirection = 'right';
+                        break;
+                }
+                e.preventDefault(); // Prevent scrolling when using arrow keys
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                let keyReleased = '';
+                
+                switch(e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        keys.up = false;
+                        keyReleased = 'up';
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        keys.down = false;
+                        keyReleased = 'down';
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        keys.left = false;
+                        keyReleased = 'left';
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        keys.right = false;
+                        keyReleased = 'right';
+                        break;
+                }
+                
+                // Check if all movement keys are released
+                if (!keys.up && !keys.down && !keys.left && !keys.right) {
+                    // Show the idle image corresponding to the last direction used
+                    player.style.backgroundImage = `url('${idleImages[lastDirection]}')`;
+                } else {
+                    // If multiple keys are pressed, prioritize direction
+                    if (keys.up) {
+                        player.style.backgroundImage = `url('${images.up}')`;
+                        lastDirection = 'up';
+                    } else if (keys.down) {
+                        player.style.backgroundImage = `url('${images.down}')`;
+                        lastDirection = 'down';
+                    } else if (keys.left) {
+                        player.style.backgroundImage = `url('${images.left}')`;
+                        lastDirection = 'left';
+                    } else if (keys.right) {
+                        player.style.backgroundImage = `url('${images.right}')`;
+                        lastDirection = 'right';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
